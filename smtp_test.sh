@@ -1,7 +1,7 @@
 #!/bin/bash
 
 con_smtp(){
-	stime=`date`
+	stime=`date +"%Y/%m/%d %H:%M:%S.%2N"`
 	result=`(sleep 0.5;echo quit) | timeout -sKILL 0.5 telnet localhost 25 | awk '$1==220{print $1}'`
 	echo $stime " , " $result | tee -a /tmp/test.txt
 	result=`(sleep 0.5;echo quit) | timeout -sKILL 0.5 telnet 10.10.10.1 25 | awk '$1==220{print $1}'`
