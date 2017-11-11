@@ -1,12 +1,24 @@
 #!/bin/bash
 
+DATE_FORMAT='%Y/%m/%d %H:%M:%S.%2N'
+OK_MSG='OK'
+RFS_MSG='NG: connection refused.'
+TOUT_MSG='NG: timeout.'
+
+res_judge(){
+	awk '/^220/{print ok;exit;}/refused/{print rfs;exit;}' ok="$OK_MSG" rfs="$RFS_MSG" $1
+}
+
+
 con_smtp(){
-	stime=`date +"%Y/%m/%d %H:%M:%S.%2N"`
+	stime=`date +"$DATE_FORMAT"`
+	cip=$1
+	cport=$2
+	tout=$3
 
-	result=`(sleep 0.5;echo quit) | timeout -sKILL 0.5 telnet $1 $2 2>&1| awk '/^220/{print "OK"}/refused/{print "NG: connection refused.";exit;}'`
-
-	if [ -z "$result" ]; then
-		result="NG: timeout."
+	result=`(sleep $tout;echo quit) | timeout -sKILL $tout telnet $cip $cport 2>&1| res_judge`
+ 	if [ -z "$result" ]; then
+		result="$TOUT_MSG"
 	fi
 
 	echo $stime " , " $result | tee -a /tmp/test.txt
@@ -16,10 +28,10 @@ con_smtp(){
 
 for i in {0..100}
 do
-	sleep 0.1s
-	con_smtp localhost 25 &
-	con_smtp localhost 24 &
-	con_smtp 10.10.10.1 25 &
+	#sleep 0.1s
+	usleep 100000
+	con_smtp $1 $2 $3&
+
 done
 
 
