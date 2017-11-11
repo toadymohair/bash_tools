@@ -26,11 +26,17 @@ con_smtp(){
 }
 
 
+ip_port=(`echo $1 | tr ':' ' '`)
+ip=${ip_port[0]}
+port=${ip_port[1]}
+timeout=$2
+
+
 for i in {0..100}
 do
 	#sleep 0.1s
 	usleep 100000
-	con_smtp $1 $2 $3&
+	con_smtp $ip $port $timeout &
 
 done
 
