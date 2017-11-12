@@ -16,7 +16,6 @@
 #  -t    接続タイムアウト(秒)。デフォルトは 1 秒。
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-set -e
 
 
 # 定数定義
@@ -30,6 +29,9 @@ CON_COUNT=0	# 接続回数（0は無限）
 CON_INTERVAL=1	# 接続間隔（秒）
 CON_PORT=25	# 接続ポート
 CON_TIMEOUT=1	# タイムアウト（秒）
+
+CNT=0		# 接続回数カウンタ
+
 
 # 使い方
 function _usage() {
@@ -107,12 +109,15 @@ if [ "$#" -ne 1 ]; then
 fi	
 
 
-for i in {0..100}
+while : 
 do
-	sleep "$CON_INTERVAL"s
-	# usleep 100000
-	_con_smtp $1 $CON_PORT $CON_TIMEOUT &
+	if [ $CON_COUNT -ne 0 -a $CNT -ge $((CON_COUNT)) ]; then
+		break
+	fi
 
+	sleep "$CON_INTERVAL"s
+	_con_smtp $1 $CON_PORT $CON_TIMEOUT &
+	(( CNT ++ ))
 done
 
 
