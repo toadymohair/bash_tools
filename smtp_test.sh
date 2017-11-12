@@ -19,24 +19,25 @@
 
 
 # 定数定義
-readonly DATE_FORMAT='%Y/%m/%d %H:%M:%S.%2N'
+readonly DATE_FORMAT_FOR_RESULT='%Y/%m/%d %H:%M:%S.%2N'	# 日付フォーマット（結果行）
+readonly DATE_FORMAT_FOR_FILE='%Y%m%d-%H%M%S'		# 日付フォーマット（結果ファイル名）
 readonly OK_MSG='OK'
 readonly RFS_MSG='NG: connection refused.'
 readonly TOUT_MSG='NG: timeout.'
+readonly RESULT_FILE_PREFIX='smtp_test_result_'
 
 # グローバル変数
-CON_COUNT=0	# 接続回数（0は無限）
-CON_INTERVAL=1	# 接続間隔（秒）
-CON_PORT=25	# 接続ポート
-CON_TIMEOUT=1	# タイムアウト（秒）
+CON_COUNT=0			# 接続回数（0は無限）
+CON_INTERVAL=1			# 接続間隔（秒）
+CON_IP=$1			# 接続IPアドレス
+CON_PORT=25			# 接続ポート
+CON_TIMEOUT=1			# タイムアウト（秒）
 
-CNT=0		# 接続回数カウンタ
-
-OK_CNT_FILE=$(mktemp)	# 接続成功回数カウンタ
-NG_CNT_FILE=$(mktemp)	# 接続成功回数カウンタ
-
-echo 0 > $OK_CNT_FILE
-echo 0 > $NG_CNT_FILE
+CNT=0				# 接続回数カウンタ
+OK_CNT=0			# 成功回数カウンタ
+NG_CNT=0			# 失敗回数カウンタ
+RESULT_FILE=""			# 結果ファイル
+TMP_RESULT_FILE=$(mktemp)	# 一時結果ファイル
 
 
 
@@ -60,37 +61,47 @@ function _res_judge(){
 
 # TELNET 接続
 function _con_smtp(){
-	local _stime=`date +"$DATE_FORMAT"`
+	local _stime=`date +"$DATE_FORMAT_FOR_RESULT"`
 	local _ok_cnt=`cat $OK_CNT_FILE`
 	local _ng_cnt=`cat $NG_CNT_FILE`
 
-	local _result=`(sleep $CON_TIMEOUT;echo quit) | timeout -sKILL $CON_TIMEOUT telnet $1 $CON_PORT 2>&1| _res_judge`
+	local _result=`(sleep $CON_TIMEOUT;echo quit) | timeout -sKILL $CON_TIMEOUT telnet $CON_IP $CON_PORT 2>&1| _res_judge`
 
 	if [ -z "$_result" ]; then
 		_result="$TOUT_MSG"
 	fi
 
-	if [ "$_result" = "$OK_MSG" ]; then
-	#	(( OK_CNT ++ ))
-		echo $(( $_ok_cnt + 1 )) > $OK_CNT_FILE
-
-	else
-		echo $(( $_ng_cnt + 1 )) > $NG_CNT_FILE
-
-	fi
-
-	echo $_stime " , " $_result | tee -a /tmp/test.txt
+	echo $_stime " , " $_result | tee -a $TMP_RESULT_FILE
 
 }
 
 # 終了処理
 function _finalize(){
+
 	wait
-	echo "+++++++++++++++++++++++++++++++++"
-	echo "Total: " $CNT ", OK: " `cat $OK_CNT_FILE` ", NG: " `cat $NG_CNT_FILE`
-	rm -f $OK_CNT_FILE
-	rm -f $NG_CNT_FILE
+
+	OK_CNT=`cat $TMP_RESULT_FILE | awk 'BEGIN{count=0;}$4 == "OK"{count++}END{print count}'`
+	NG_CNT=`cat $TMP_RESULT_FILE | awk 'BEGIN{count=0;}$4 == "NG:"{count++}END{print count}'`
+
+	echo "++++++++++++++++++++++++++++++++++++++++++" | tee $RESULT_FILE
+	echo "**SMTP TEST RESULT**" | tee -a $RESULT_FILE
+	echo "- Parameters" | tee -a $RESULT_FILE
+	echo "	target = " $CON_IP":"$CON_PORT | tee -a $RESULT_FILE
+	echo "	interval = " $CON_INTERVAL "s"| tee -a $RESULT_FILE
+	echo "	timeout = " $CON_TIMEOUT "s"| tee -a $RESULT_FILE
+	echo "- Result" | tee -a $RESULT_FILE
+	echo "	total: " $CNT ", OK: " $OK_CNT ", NG: " $NG_CNT | tee -a $RESULT_FILE
+	echo "++++++++++++++++++++++++++++++++++++++++++" | tee -a $RESULT_FILE
+
+	LC_ALL=C
+	sort $TMP_RESULT_FILE >> $RESULT_FILE
+
+	rm -f $TMP_RESULT_FILE
 }
+
+
+# 結果出力ファイル名生成
+RESULT_FILE=$RESULT_FILE_PREFIX`date +"$DATE_FORMAT_FOR_FILE"`".txt"
 
 # 引数・オプション取得
 if [ "$OPTIND" = 1 ]; then
@@ -99,22 +110,17 @@ if [ "$OPTIND" = 1 ]; then
    case $OPT in
      c)
        CON_COUNT=$OPTARG
-       echo "count: $CON_COUNT"            # for debug
        ;;
      i) 	
        CON_INTERVAL=$OPTARG
-       echo "interval: $CON_INTERVAL"            # for debug
        ;;
      p)
        CON_PORT=$OPTARG
-       echo "port: $CON_PORT"              # for debug
        ;;
      t)
        CON_TIMEOUT=$OPTARG
-       echo "timeout: $CON_TIMEOUT"              # for debug
        ;;
      h)
-       echo "h option. display help"       # for debug
        _usage
        ;;
      :|\?)
@@ -135,6 +141,7 @@ if [ "$#" -ne 1 ]; then
        _usage
 fi	
 
+CON_IP=$1
 
 trap "_finalize" 0
 
@@ -145,7 +152,7 @@ do
 	fi
 
 	sleep "$CON_INTERVAL"s
-	_con_smtp $1 &
+	_con_smtp &
 	(( CNT ++ ))
 done
 
