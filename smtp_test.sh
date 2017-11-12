@@ -54,7 +54,16 @@ exit 1
 # 返り値を元に結果を判定
 function _res_judge(){
 
-	awk '/^220/{print ok;exit;}/refused/{print rfs;exit;}' ok="$OK_MSG" rfs="$RFS_MSG" $1
+	local _res
+
+	_res=`awk '/^220/{print ok;exit;}/refused/{print rfs;exit;}' ok="$OK_MSG" rfs="$RFS_MSG" $1`
+
+	if [ -z "$_res" ]; then
+		_res="$TOUT_MSG"
+	fi
+
+	echo $_res
+
 }
  	
 
@@ -62,14 +71,8 @@ function _res_judge(){
 # TELNET 接続
 function _con_smtp(){
 	local _stime=`date +"$DATE_FORMAT_FOR_RESULT"`
-	local _ok_cnt=`cat $OK_CNT_FILE`
-	local _ng_cnt=`cat $NG_CNT_FILE`
 
 	local _result=`(sleep $CON_TIMEOUT;echo quit) | timeout -sKILL $CON_TIMEOUT telnet $CON_IP $CON_PORT 2>&1| _res_judge`
-
-	if [ -z "$_result" ]; then
-		_result="$TOUT_MSG"
-	fi
 
 	echo $_stime " , " $_result | tee -a $TMP_RESULT_FILE
 
