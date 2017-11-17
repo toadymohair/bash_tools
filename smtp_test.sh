@@ -11,7 +11,8 @@
 #  それ以外の場合はNGと判断する。
 # Options:
 #  -c    接続実行回数 。デフォルトは無限。
-#  -i     接続実行間隔(秒)。デフォルトは 1秒。
+#  -f    結果ファイル名のプレフィックス。デフォルトは「smtp_test_result」。
+#  -i    接続実行間隔(秒)。デフォルトは 1秒。
 #  -p    ポート番号。デフォルトは 25。
 #  -t    接続タイムアウト(秒)。デフォルトは 1 秒。
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -21,23 +22,23 @@
 # 定数定義
 readonly DATE_FORMAT_FOR_RESULT='%Y/%m/%d %H:%M:%S.%2N'	# 日付フォーマット（結果行）
 readonly DATE_FORMAT_FOR_FILE='%Y%m%d-%H%M%S'		# 日付フォーマット（結果ファイル名）
-readonly OK_MSG='OK'
-readonly RFS_MSG='NG: connection refused.'
-readonly TOUT_MSG='NG: timeout.'
-readonly RESULT_FILE_PREFIX='smtp_test_result_'
+readonly OK_MSG='OK'					# 接続成功テキスト
+readonly RFS_MSG='NG: connection refused.'		# 接続失敗テキスト（接続拒否）
+readonly TOUT_MSG='NG: timeout.'			# 接続失敗テキスト（タイムアウト）
 
 # グローバル変数
-CON_COUNT=0			# 接続回数（0は無限）
-CON_INTERVAL=1			# 接続間隔（秒）
-CON_IP=$1			# 接続IPアドレス
-CON_PORT=25			# 接続ポート
-CON_TIMEOUT=1			# タイムアウト（秒）
+CON_COUNT=0						# 接続回数（0は無限）
+CON_INTERVAL=1						# 接続間隔（秒）
+CON_IP=$1						# 接続IPアドレス
+CON_PORT=25						# 接続ポート
+CON_TIMEOUT=1						# タイムアウト（秒）
 
-CNT=0				# 接続回数カウンタ
-OK_CNT=0			# 成功回数カウンタ
-NG_CNT=0			# 失敗回数カウンタ
-RESULT_FILE=""			# 結果ファイル
-TMP_RESULT_FILE=$(mktemp)	# 一時結果ファイル
+RESULT_FILE_PREFIX='smtp_test_result'			# 結果ファイル名プレフィックス
+CNT=0							# 接続回数カウンタ
+OK_CNT=0						# 成功回数カウンタ
+NG_CNT=0						# 失敗回数カウンタ
+RESULT_FILE=""						# 結果ファイル
+TMP_RESULT_FILE=$(mktemp)				# 一時結果ファイル
 
 
 
@@ -45,7 +46,7 @@ TMP_RESULT_FILE=$(mktemp)	# 一時結果ファイル
 function _usage() {
 cat <<_EOT_
 Usage:
-  $(basename ${0}) [-c count] [-i interval] [-t timeout] [-p port] ip_address
+  $(basename ${0}) [-c count] [-f file_name_prefix] [-i interval] [-t timeout] [-p port] ip_address
 _EOT_
 exit 1
 }
@@ -83,9 +84,11 @@ function _finalize(){
 
 	wait
 
+	# 成功/失敗数をカウント
 	OK_CNT=`cat $TMP_RESULT_FILE | awk 'BEGIN{count=0;}$4 == "OK"{count++}END{print count}'`
 	NG_CNT=`cat $TMP_RESULT_FILE | awk 'BEGIN{count=0;}$4 == "NG:"{count++}END{print count}'`
 
+	# 各種パラメータと結果サマリを表示
 	echo "++++++++++++++++++++++++++++++++++++++++++" | tee $RESULT_FILE
 	echo "**SMTP TEST RESULT**" | tee -a $RESULT_FILE
 	echo "- Parameters" | tee -a $RESULT_FILE
@@ -96,23 +99,24 @@ function _finalize(){
 	echo "	total: " $CNT ", OK: " $OK_CNT ", NG: " $NG_CNT | tee -a $RESULT_FILE
 	echo "++++++++++++++++++++++++++++++++++++++++++" | tee -a $RESULT_FILE
 
+	# 接続結果をタイムスタンプ順にソート
 	LC_ALL=C
 	sort $TMP_RESULT_FILE >> $RESULT_FILE
 
+	# 一時ファイルを削除
 	rm -f $TMP_RESULT_FILE
 }
 
-
-# 結果出力ファイル名生成
-RESULT_FILE=$RESULT_FILE_PREFIX`date +"$DATE_FORMAT_FOR_FILE"`".txt"
-
 # 引数・オプション取得
 if [ "$OPTIND" = 1 ]; then
-  while getopts :c:i:p:t:h: OPT
+  while getopts :c:f:i:p:t:h: OPT
   do
    case $OPT in
      c)
        CON_COUNT=$OPTARG
+       ;;
+     f)
+       RESULT_FILE_PREFIX=$OPTARG
        ;;
      i) 	
        CON_INTERVAL=$OPTARG
@@ -144,7 +148,12 @@ if [ "$#" -ne 1 ]; then
        _usage
 fi	
 
+# 接続先IPアドレス
 CON_IP=$1
+
+# 結果出力ファイル名生成
+RESULT_FILE=$RESULT_FILE_PREFIX'_'`date +"$DATE_FORMAT_FOR_FILE"`".txt"
+
 
 trap "_finalize" 0
 
