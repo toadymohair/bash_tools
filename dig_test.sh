@@ -3,7 +3,7 @@
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++
 # smtp_test.sh
 # k.yamamoto
-# Usage: smtp_test.sh [options]... server_ip query_domain expected_answer
+# Usage: smtp_test.sh [options]... server_ip query_domain
 # Description:
 #  SMTP 接続（TELNET) を連続で発行し、
 #  結果をファイル出力する。
@@ -46,7 +46,7 @@ TMP_RESULT_FILE=$(mktemp)				# 一時結果ファイル
 function _usage() {
 cat <<_EOT_
 Usage:
-  $(basename ${0}) [-c count] [-f file_name_prefix] [-i interval] [-t timeout] [-p port] ip_address
+  $(basename ${0}) [-c count] [-f file_name_prefix] [-i interval] [-t timeout] [-p port] server_ip query_domain
 _EOT_
 exit 1
 }
@@ -119,7 +119,7 @@ if [ "$OPTIND" = 1 ]; then
      f)
        RESULT_FILE_PREFIX=$OPTARG
        ;;
-     i) 	
+     i)
        CON_INTERVAL=$OPTARG
        ;;
      p)
@@ -144,7 +144,7 @@ fi
 shift $((OPTIND-1))
 
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -ne 2 ]; then
 	echo "$#"
        _usage
 fi
