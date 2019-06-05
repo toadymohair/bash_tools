@@ -93,7 +93,7 @@ function _finalize(){
 
   # 成功/失敗数をカウント
   OK_CNT=`cat $TMP_RESULT_FILE | awk 'BEGIN{count=0;}$4 == "OK"{count++}END{print count}'`
-  NG_CNT=`cat $TMP_RESULT_FILE | awk 'BEGIN{count=0;}$4 == "NG:"{count++}END{print count}'`
+  NG_CNT=`cat $TMP_RESULT_FILE | awk 'BEGIN{count=0;}$4 == "NG"{count++}END{print count}'`
 
   # 各種パラメータと結果サマリを表示
   echo "++++++++++++++++++++++++++++++++++++++++++" | tee $RESULT_FILE
