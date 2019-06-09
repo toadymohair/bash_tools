@@ -148,8 +148,6 @@ else
  exit 1
 fi
 
-echo "OPTIND: " $OPTIND
-
 shift $((OPTIND-1))
 
 
