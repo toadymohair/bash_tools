@@ -26,8 +26,7 @@ _EOT_
 }
 
 if [ "$#" -ne 1 ]; then
-  echo "$#"
-       _usage
+ _usage
 fi
 
 # get username
