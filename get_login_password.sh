@@ -1,12 +1,11 @@
 #!/bin/bash
 
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++
-# encrypt_login_password.sh
-# Usage: save_login_password.sh login_name
+# get_login_password.sh
+# Usage: get_login_password.sh login_name
 # Description:
 # Variables:
 #  login_name   ログイン情報名。WebサイトのURlなど
-#  user_name    ログインユーザ名
 # Options:
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
