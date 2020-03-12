@@ -12,7 +12,7 @@
 # +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # 定数定義
-readonly RSA_KEY=~/.ssh/id_rsa # 暗号化用RSAキー
+readonly RSA_KEY=~/.ssh/toolskey # 暗号化用RSAキー
 readonly SAVE_DIR=~/login/      # ログイン情報保存ディレクトリ
 
 # グローバル変数
